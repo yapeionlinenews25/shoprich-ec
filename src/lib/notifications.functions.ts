@@ -64,8 +64,7 @@ async function sendTelegram(chatId: string, text: string) {
 export const sendNotification = createServerFn({ method: "POST" })
   .inputValidator((d) => NotifySchema.parse(d))
   .handler(async ({ data }) => {
-    const results: Record<string, unknown> = {};
-    if (data.email) results.email = await sendGmail(data.email, data.subject, `<p>${data.message.replace(/\n/g, "<br/>")}</p>`);
-    if (data.telegramChatId) results.telegram = await sendTelegram(data.telegramChatId, `<b>${data.subject}</b>\n\n${data.message}`);
-    return { ok: true, results };
+    const emailRes = data.email ? await sendGmail(data.email, data.subject, `<p>${data.message.replace(/\n/g, "<br/>")}</p>`) : null;
+    const tgRes = data.telegramChatId ? await sendTelegram(data.telegramChatId, `<b>${data.subject}</b>\n\n${data.message}`) : null;
+    return { ok: true as const, email: emailRes, telegram: tgRes };
   });
