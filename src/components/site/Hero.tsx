@@ -1,7 +1,20 @@
 import heroBg from "@/assets/hero-bg.jpg";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getPlatformStats } from "@/lib/stats.functions";
+
+function fmt(n: number) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  return String(n);
+}
 
 export function Hero() {
+  const stats = useServerFn(getPlatformStats);
+  const [s, setS] = useState<{ vendors: number; resellers: number; products: number; countries: number } | null>(null);
+  useEffect(() => { stats().then(setS).catch(() => setS({ vendors: 0, resellers: 0, products: 0, countries: 0 })); }, []);
   return (
     <section className="relative overflow-hidden">
       <img
