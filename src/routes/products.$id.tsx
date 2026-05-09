@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { hueFromString } from "@/lib/utils-hue";
 import { ShoppingCart, QrCode, Copy } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { Reviews } from "@/components/app/Reviews";
 
 export const Route = createFileRoute("/products/$id")({
   component: ProductDetail,
@@ -91,6 +92,7 @@ function ProductDetail() {
           )}
         </div>
       </div>
+      <Reviews productId={p.id} />
     </AppShell>
   );
 }

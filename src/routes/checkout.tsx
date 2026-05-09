@@ -94,7 +94,25 @@ function Checkout() {
         .insert(items.map((i) => ({ ...i, order_id: order.id })));
       if (oiErr) throw oiErr;
 
-      // Simulate payment + send notifications via server fn
+      // Real payment: route to Stripe / Paystack edge functions when selected
+      if (form.method === "stripe") {
+        const { data, error } = await supabase.functions.invoke("create-stripe-checkout", {
+          body: { orderId: order.id, successUrl: `${window.location.origin}/orders/${order.id}`, cancelUrl: `${window.location.origin}/checkout` },
+        });
+        if (error || !data?.url) throw new Error((data as any)?.error ?? error?.message ?? "Stripe checkout failed");
+        window.location.href = data.url;
+        return;
+      }
+      if (form.method === "paystack") {
+        const { data, error } = await supabase.functions.invoke("create-paystack-checkout", {
+          body: { orderId: order.id, callbackUrl: `${window.location.origin}/orders/${order.id}` },
+        });
+        if (error || !data?.url) throw new Error((data as any)?.error ?? error?.message ?? "Paystack checkout failed");
+        window.location.href = data.url;
+        return;
+      }
+
+      // Demo (card / paypal): simulate payment + send notifications via server fn
       const result = await finalize({ data: { orderId: order.id } });
       if (!result.ok) throw new Error("Payment failed");
 

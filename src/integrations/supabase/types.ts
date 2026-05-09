@@ -408,6 +408,87 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          product_id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          product_id: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          product_id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_link_tokens: {
+        Row: {
+          created_at: string
+          token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_messages: {
+        Row: {
+          chat_id: number
+          created_at: string
+          raw: Json
+          text: string | null
+          tg_user_id: number | null
+          update_id: number
+          username: string | null
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          raw: Json
+          text?: string | null
+          tg_user_id?: number | null
+          update_id: number
+          username?: string | null
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          raw?: Json
+          text?: string | null
+          tg_user_id?: number | null
+          update_id?: number
+          username?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
