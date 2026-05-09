@@ -1,1 +1,7 @@
 project_id = "juvkgeowhvrbwvhtojcz"
+
+[functions.create-stripe-checkout]
+verify_jwt = false
+
+[functions.create-paystack-checkout]
+verify_jwt = false
