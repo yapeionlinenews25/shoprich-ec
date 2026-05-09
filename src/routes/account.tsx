@@ -72,10 +72,6 @@ function Account() {
             🔗 Connect Telegram (@shoprich_ecbot)
           </button>
           <p className="text-xs text-muted-foreground">Connecting opens our Telegram bot. Tap <b>Start</b> to receive order, payment & shipping alerts here.</p>
-          <button disabled={busy} className="rounded-full gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground glass-hover">
-            {busy ? "Saving..." : "Save"}
-          </button>
-        </form>
 
         <div className="glass-strong rounded-3xl p-6">
           <h2 className="font-semibold">Your roles</h2>
