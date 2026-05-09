@@ -58,11 +58,20 @@ function Account() {
             value={profile?.display_name ?? ""} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} />
           <input className="glass w-full rounded-xl px-4 py-3 text-sm" placeholder="Contact email (for order emails)"
             value={profile?.contact_email ?? ""} onChange={(e) => setProfile({ ...profile, contact_email: e.target.value })} />
-          <input className="glass w-full rounded-xl px-4 py-3 text-sm" placeholder="Telegram chat ID (for Telegram alerts)"
+          <input className="glass w-full rounded-xl px-4 py-3 text-sm" placeholder="Telegram chat ID (auto-filled when you connect)"
             value={profile?.telegram_chat_id ?? ""} onChange={(e) => setProfile({ ...profile, telegram_chat_id: e.target.value })} />
           <input className="glass w-full rounded-xl px-4 py-3 text-sm" placeholder="Country"
             value={profile?.country ?? ""} onChange={(e) => setProfile({ ...profile, country: e.target.value })} />
-          <p className="text-xs text-muted-foreground">Tip: get your Telegram chat ID by messaging @userinfobot on Telegram.</p>
+          <button type="button" onClick={async () => {
+            const token = (crypto.randomUUID().replace(/-/g, "") + Date.now().toString(36)).slice(0, 24);
+            const { error } = await supabase.from("telegram_link_tokens").insert({ token, user_id: user.id });
+            if (error) return toast.error(error.message);
+            window.open(`https://t.me/shoprich_ecbot?start=${token}`, "_blank");
+            toast.success("Opening @shoprich_ecbot — tap Start to link.");
+          }} className="glass glass-hover w-full rounded-xl px-4 py-2.5 text-sm font-semibold">
+            🔗 Connect Telegram (@shoprich_ecbot)
+          </button>
+          <p className="text-xs text-muted-foreground">Connecting opens our Telegram bot. Tap <b>Start</b> to receive order, payment & shipping alerts here.</p>
           <button disabled={busy} className="rounded-full gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground glass-hover">
             {busy ? "Saving..." : "Save"}
           </button>
