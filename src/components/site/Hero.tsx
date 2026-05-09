@@ -41,21 +41,21 @@ export function Hero() {
             payments, and fulfillment.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <button className="glass-hover inline-flex items-center gap-2 rounded-full gradient-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
+            <Link to="/vendor" className="glass-hover inline-flex items-center gap-2 rounded-full gradient-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
               Start selling <ArrowRight className="h-4 w-4" />
-            </button>
-            <button className="glass glass-hover rounded-full px-6 py-3 text-sm font-semibold">
+            </Link>
+            <Link to="/marketplace" className="glass glass-hover rounded-full px-6 py-3 text-sm font-semibold">
               Explore marketplace
-            </button>
+            </Link>
           </div>
         </div>
 
         <div className="mx-auto mt-14 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            ["12K+", "Vendors"],
-            ["48K+", "Resellers"],
-            ["1.2M+", "Products"],
-            ["180+", "Countries"],
+            [fmt(s?.vendors ?? 0), "Vendors"],
+            [fmt(s?.resellers ?? 0), "Resellers"],
+            [fmt(s?.products ?? 0), "Products"],
+            [String(s?.countries ?? 0), "Countries"],
           ].map(([k, v]) => (
             <div key={v} className="glass glass-hover rounded-2xl px-4 py-5 text-center">
               <div className="text-2xl font-bold gradient-text">{k}</div>
