@@ -1,4 +1,5 @@
 import { Shirt, Smartphone, Home, Sparkles, Dumbbell, Gamepad2, Baby, Car } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 const cats = [
   { name: "Fashion", icon: Shirt },
@@ -19,18 +20,21 @@ export function Categories() {
           <h2 className="text-2xl font-bold sm:text-3xl">Shop by category</h2>
           <p className="mt-1 text-sm text-muted-foreground">Discover trending picks from global vendors</p>
         </div>
+        <Link to="/marketplace" className="text-sm text-accent hover:underline">All categories</Link>
       </div>
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
         {cats.map((c) => (
-          <button
+          <Link
             key={c.name}
+            to="/marketplace"
+            search={{ category: c.name.toLowerCase() } as any}
             className="glass glass-hover flex flex-col items-center gap-2 rounded-2xl p-4"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary">
               <c.icon className="h-5 w-5 text-primary-foreground" />
             </span>
             <span className="text-sm font-medium">{c.name}</span>
-          </button>
+          </Link>
         ))}
       </div>
     </section>

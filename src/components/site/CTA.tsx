@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 export function CTA() {
   return (
@@ -12,12 +13,12 @@ export function CTA() {
           Open your store in minutes. Free to start, scale globally, only pay when you sell.
         </p>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <button className="glass-hover inline-flex items-center gap-2 rounded-full gradient-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
+          <Link to="/vendor" className="glass-hover inline-flex items-center gap-2 rounded-full gradient-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
             Create your store <ArrowRight className="h-4 w-4" />
-          </button>
-          <button className="glass glass-hover rounded-full px-6 py-3 text-sm font-semibold">
+          </Link>
+          <Link to="/contact" className="glass glass-hover rounded-full px-6 py-3 text-sm font-semibold">
             Talk to sales
-          </button>
+          </Link>
         </div>
       </div>
     </section>
