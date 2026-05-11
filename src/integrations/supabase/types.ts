@@ -283,6 +283,57 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_accounts: {
+        Row: {
+          account_name: string | null
+          account_number: string
+          bank_code: string
+          bank_name: string | null
+          country: string
+          created_at: string
+          currency: string | null
+          id: string
+          is_default: boolean
+          paystack_recipient_code: string | null
+          type: string
+          updated_at: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          account_name?: string | null
+          account_number: string
+          bank_code: string
+          bank_name?: string | null
+          country: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_default?: boolean
+          paystack_recipient_code?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string
+          bank_code?: string
+          bank_name?: string | null
+          country?: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_default?: boolean
+          paystack_recipient_code?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           default_currency: string
@@ -404,6 +455,36 @@ export type Database = {
           id?: string
           telegram_chat_id?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
