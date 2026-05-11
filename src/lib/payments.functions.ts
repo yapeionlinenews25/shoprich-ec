@@ -172,6 +172,7 @@ export const finalizeOrderPayment = createServerFn({ method: "POST" })
       await Promise.all([
         gmail(rp?.contact_email ?? "", `Commission earned — ${order.order_number}`, `<p>You earned <b>${order.currency} ${rTotal.toFixed(2)}</b> on order ${order.order_number}.</p>`),
         tg(rp?.telegram_chat_id, `💰 Commission ${order.currency} ${rTotal.toFixed(2)} on order ${order.order_number}`),
+        pushTo(sb, rid, "Commission earned", `${order.currency} ${rTotal.toFixed(2)} on ${order.order_number}`, `/reseller`),
         sb.from("notifications").insert({
           user_id: rid,
           title: "Commission earned",
