@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Download, Bell } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { savePushSubscription } from "@/lib/push.functions";
+import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array } from "@/lib/vapid";
+import { useAuth } from "@/lib/auth";
 
 function isPreviewOrIframe() {
   try {
@@ -14,6 +18,8 @@ export function PwaInstall() {
   const [deferred, setDeferred] = useState<any>(null);
   const [installed, setInstalled] = useState(false);
   const [pushOn, setPushOn] = useState(false);
+  const { user } = useAuth();
+  const saveSub = useServerFn(savePushSubscription);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -45,17 +51,39 @@ export function PwaInstall() {
   };
 
   const enablePush = async () => {
-    if (!("Notification" in window)) { toast.error("Notifications not supported"); return; }
+    if (!("Notification" in window) || !("serviceWorker" in window.navigator)) {
+      toast.error("Notifications not supported");
+      return;
+    }
     const perm = await Notification.requestPermission();
-    if (perm === "granted") {
-      setPushOn(true);
-      toast.success("Order updates enabled");
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        reg.showNotification("Notifications enabled", { body: "You'll get order updates here.", icon: "/icon-192.png" });
-      } catch {}
-    } else {
-      toast.error("Notifications blocked");
+    if (perm !== "granted") { toast.error("Notifications blocked"); return; }
+    setPushOn(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
+        });
+      }
+      const json: any = sub.toJSON();
+      if (user) {
+        await saveSub({
+          data: {
+            endpoint: json.endpoint,
+            p256dh: json.keys.p256dh,
+            auth: json.keys.auth,
+            userAgent: navigator.userAgent.slice(0, 500),
+          },
+        });
+        toast.success("Order alerts enabled on this device");
+      } else {
+        toast.message("Sign in to receive personalized order alerts");
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Could not enable push: " + (e?.message ?? "unknown"));
     }
   };
 

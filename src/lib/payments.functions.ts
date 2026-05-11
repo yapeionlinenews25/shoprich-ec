@@ -36,6 +36,27 @@ async function tg(chatId: string | null | undefined, text: string) {
   }).catch((e) => console.error("TG err", e));
 }
 
+async function pushTo(sb: ReturnType<typeof admin>, userId: string, title: string, body: string, url: string) {
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  const subj = process.env.VAPID_SUBJECT;
+  if (!priv || !subj) return;
+  try {
+    const webpush = (await import("web-push")).default;
+    webpush.setVapidDetails(subj, "BG2K5y0WUcnnRKiGt2YEJ17WsxMaCf4NDc7n2cEBaA26gySZxbevtXFKEuNfoHILTZ-S6IBjv4svnhQH3K-9DZo", priv);
+    const { data: subs } = await sb.from("push_subscriptions").select("endpoint, p256dh, auth").eq("user_id", userId);
+    const payload = JSON.stringify({ title, body, url });
+    await Promise.allSettled((subs ?? []).map(async (s: any) => {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
+      } catch (e: any) {
+        if (e?.statusCode === 404 || e?.statusCode === 410) {
+          await sb.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
+        }
+      }
+    }));
+  } catch (e) { console.error("push err", e); }
+}
+
 /**
  * Finalize an order: simulate payment success, mark as paid,
  * compute & insert commissions, send notifications via Gmail + Telegram
@@ -112,6 +133,7 @@ export const finalizeOrderPayment = createServerFn({ method: "POST" })
     await Promise.all([
       gmail(customerProfile?.contact_email ?? "", customerSubject, customerHtml),
       tg(customerProfile?.telegram_chat_id, `✅ Order <b>${order.order_number}</b> confirmed — ${totalStr}`),
+      pushTo(sb, order.customer_id, "Order confirmed", `${order.order_number} · ${totalStr}`, `/orders/${order.id}`),
       sb.from("notifications").insert({
         user_id: order.customer_id,
         title: "Order confirmed",
@@ -133,6 +155,7 @@ export const finalizeOrderPayment = createServerFn({ method: "POST" })
       await Promise.all([
         gmail(vp?.contact_email ?? "", `New order ${order.order_number}`, html),
         tg(vp?.telegram_chat_id, `🛒 New paid order <b>${order.order_number}</b> — payout ${order.currency} ${vTotal.toFixed(2)}`),
+        pushTo(sb, vid, "New paid order", `${order.order_number} · ${vItems.length} item(s)`, `/vendor`),
         sb.from("notifications").insert({
           user_id: vid,
           title: "New paid order",
@@ -149,6 +172,7 @@ export const finalizeOrderPayment = createServerFn({ method: "POST" })
       await Promise.all([
         gmail(rp?.contact_email ?? "", `Commission earned — ${order.order_number}`, `<p>You earned <b>${order.currency} ${rTotal.toFixed(2)}</b> on order ${order.order_number}.</p>`),
         tg(rp?.telegram_chat_id, `💰 Commission ${order.currency} ${rTotal.toFixed(2)} on order ${order.order_number}`),
+        pushTo(sb, rid, "Commission earned", `${order.currency} ${rTotal.toFixed(2)} on ${order.order_number}`, `/reseller`),
         sb.from("notifications").insert({
           user_id: rid,
           title: "Commission earned",
