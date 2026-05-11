@@ -155,6 +155,7 @@ export const finalizeOrderPayment = createServerFn({ method: "POST" })
       await Promise.all([
         gmail(vp?.contact_email ?? "", `New order ${order.order_number}`, html),
         tg(vp?.telegram_chat_id, `🛒 New paid order <b>${order.order_number}</b> — payout ${order.currency} ${vTotal.toFixed(2)}`),
+        pushTo(sb, vid, "New paid order", `${order.order_number} · ${vItems.length} item(s)`, `/vendor`),
         sb.from("notifications").insert({
           user_id: vid,
           title: "New paid order",
