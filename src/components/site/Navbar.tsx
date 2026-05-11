@@ -1,9 +1,16 @@
-import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Search, User } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ShoppingBag, Search, User, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 export function Navbar() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out");
+    navigate({ to: "/" });
+  };
   return (
     <header className="sticky top-0 z-50 glass-strong">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
@@ -26,17 +33,24 @@ export function Navbar() {
             <Search className="h-4 w-4" />
           </Link>
           {user ? (
-            <Link to="/account" className="glass glass-hover hidden rounded-full px-4 py-2 text-sm sm:inline-flex items-center gap-2">
-              <User className="h-4 w-4" /> Account
-            </Link>
+            <>
+              <Link to="/account" className="glass glass-hover hidden rounded-full px-4 py-2 text-sm sm:inline-flex items-center gap-2">
+                <User className="h-4 w-4" /> Account
+              </Link>
+              <button onClick={handleSignOut} aria-label="Sign out" className="glass glass-hover rounded-full p-2" title="Sign out">
+                <LogOut className="h-4 w-4" />
+              </button>
+            </>
           ) : (
-            <Link to="/auth" className="glass glass-hover hidden rounded-full px-4 py-2 text-sm sm:inline-flex items-center gap-2">
-              <User className="h-4 w-4" /> Sign in
-            </Link>
+            <>
+              <Link to="/auth" className="glass glass-hover hidden rounded-full px-4 py-2 text-sm sm:inline-flex items-center gap-2">
+                <User className="h-4 w-4" /> Sign in
+              </Link>
+              <Link to="/auth" className="rounded-full gradient-primary px-4 py-2 text-sm font-medium text-primary-foreground glass-hover">
+                Get started
+              </Link>
+            </>
           )}
-          <Link to={user ? "/marketplace" : "/auth"} className="rounded-full gradient-primary px-4 py-2 text-sm font-medium text-primary-foreground glass-hover">
-            Get started
-          </Link>
         </div>
       </div>
     </header>
