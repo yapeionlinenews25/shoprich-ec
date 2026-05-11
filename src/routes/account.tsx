@@ -53,7 +53,15 @@ function Account() {
 
   return (
     <AppShell>
-      <h1 className="mb-6 text-2xl font-bold">My account</h1>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">My account</h1>
+        <button
+          onClick={async () => { await signOut(); toast.success("Signed out"); navigate({ to: "/" }); }}
+          className="glass glass-hover inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
+        >
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
+      </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <form onSubmit={saveProfile} className="glass-strong rounded-3xl p-6 space-y-3">
           <h2 className="font-semibold">Profile & notification channels</h2>
