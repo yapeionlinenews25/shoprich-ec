@@ -121,6 +121,11 @@ function Account() {
           </div>
         </div>
       </div>
+      {(roles.includes("vendor") || roles.includes("reseller")) && (
+        <div className="mt-6">
+          <PayoutSetup />
+        </div>
+      )}
     </AppShell>
   );
 }
