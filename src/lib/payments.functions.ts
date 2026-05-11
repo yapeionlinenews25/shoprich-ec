@@ -36,6 +36,27 @@ async function tg(chatId: string | null | undefined, text: string) {
   }).catch((e) => console.error("TG err", e));
 }
 
+async function pushTo(sb: ReturnType<typeof admin>, userId: string, title: string, body: string, url: string) {
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  const subj = process.env.VAPID_SUBJECT;
+  if (!priv || !subj) return;
+  try {
+    const webpush = (await import("web-push")).default;
+    webpush.setVapidDetails(subj, "BG2K5y0WUcnnRKiGt2YEJ17WsxMaCf4NDc7n2cEBaA26gySZxbevtXFKEuNfoHILTZ-S6IBjv4svnhQH3K-9DZo", priv);
+    const { data: subs } = await sb.from("push_subscriptions").select("endpoint, p256dh, auth").eq("user_id", userId);
+    const payload = JSON.stringify({ title, body, url });
+    await Promise.allSettled((subs ?? []).map(async (s: any) => {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
+      } catch (e: any) {
+        if (e?.statusCode === 404 || e?.statusCode === 410) {
+          await sb.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
+        }
+      }
+    }));
+  } catch (e) { console.error("push err", e); }
+}
+
 /**
  * Finalize an order: simulate payment success, mark as paid,
  * compute & insert commissions, send notifications via Gmail + Telegram
