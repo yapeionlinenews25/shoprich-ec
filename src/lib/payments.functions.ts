@@ -133,6 +133,7 @@ export const finalizeOrderPayment = createServerFn({ method: "POST" })
     await Promise.all([
       gmail(customerProfile?.contact_email ?? "", customerSubject, customerHtml),
       tg(customerProfile?.telegram_chat_id, `✅ Order <b>${order.order_number}</b> confirmed — ${totalStr}`),
+      pushTo(sb, order.customer_id, "Order confirmed", `${order.order_number} · ${totalStr}`, `/orders/${order.id}`),
       sb.from("notifications").insert({
         user_id: order.customer_id,
         title: "Order confirmed",
