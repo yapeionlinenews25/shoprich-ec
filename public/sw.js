@@ -1,8 +1,10 @@
 // ShopRich EC service worker — offline shell + push notifications
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC_CACHE = `shoprich-static-${VERSION}`;
 const RUNTIME_CACHE = `shoprich-runtime-${VERSION}`;
-const PRECACHE = ["/", "/marketplace", "/cart", "/account", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+const PAGES_CACHE = `shoprich-pages-${VERSION}`;
+const PRECACHE = ["/", "/marketplace", "/cart", "/account", "/vendor", "/reseller", "/contact", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+const CACHEABLE_PAGE_PREFIXES = ["/products/", "/marketplace", "/vendor", "/reseller", "/account", "/contact", "/privacy", "/terms"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
