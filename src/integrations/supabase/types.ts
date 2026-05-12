@@ -128,6 +128,39 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_orders: boolean
+          marketing_emails: boolean
+          phone: string | null
+          push_orders: boolean
+          sms_orders: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_orders?: boolean
+          marketing_emails?: boolean
+          phone?: string | null
+          push_orders?: boolean
+          sms_orders?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_orders?: boolean
+          marketing_emails?: boolean
+          phone?: string | null
+          push_orders?: boolean
+          sms_orders?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -588,6 +621,60 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vendor_applications: {
+        Row: {
+          business_name: string
+          category: string
+          country: string
+          created_at: string
+          description: string
+          expected_monthly_volume: string | null
+          id: string
+          requested_role: Database["public"]["Enums"]["app_role"]
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          business_name: string
+          category: string
+          country: string
+          created_at?: string
+          description: string
+          expected_monthly_volume?: string | null
+          id?: string
+          requested_role: Database["public"]["Enums"]["app_role"]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          business_name?: string
+          category?: string
+          country?: string
+          created_at?: string
+          description?: string
+          expected_monthly_volume?: string | null
+          id?: string
+          requested_role?: Database["public"]["Enums"]["app_role"]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
