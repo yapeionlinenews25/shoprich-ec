@@ -19,16 +19,18 @@ function AdminDashboard() {
   const [apps, setApps] = useState<any[]>([]);
 
   const load = async () => {
-    const [{ count: users }, { count: products }, { data: o }, { data: st }, { data: cfg }] = await Promise.all([
+    const [{ count: users }, { count: products }, { data: o }, { data: st }, { data: cfg }, { data: a }] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }),
       supabase.from("products").select("*", { count: "exact", head: true }),
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(20),
       supabase.from("vendor_stores").select("*").order("created_at", { ascending: false }),
       supabase.from("platform_settings").select("*").eq("id", 1).single(),
+      supabase.from("vendor_applications").select("*").eq("status", "pending").order("created_at", { ascending: false }),
     ]);
     setOrders(o ?? []);
     setStores(st ?? []);
     setSettings(cfg);
+    setApps(a ?? []);
     const revenue = (o ?? []).filter((x) => x.status !== "pending").reduce((s, x) => s + Number(x.platform_fee), 0);
     setStats({ users: users ?? 0, products: products ?? 0, orders: (o ?? []).length, revenue });
   };
