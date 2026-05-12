@@ -5,14 +5,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PayoutSetup } from "@/components/app/PayoutSetup";
-import { LogOut } from "lucide-react";
+import { RoleApplication } from "@/components/app/RoleApplication";
+import { LogOut, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/account")({
   component: Account,
 });
 
 function Account() {
-  const { user, roles, refreshRoles, signOut } = useAuth();
+  const { user, roles, signOut } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -44,12 +45,6 @@ function Account() {
     else toast.success("Profile saved. Notifications will go to these channels.");
   };
 
-  const becomeRole = async (role: "vendor" | "reseller") => {
-    const { error } = await supabase.from("user_roles").insert({ user_id: user.id, role });
-    if (error && !error.message.includes("duplicate")) return toast.error(error.message);
-    await refreshRoles();
-    toast.success(`You are now a ${role}!`);
-  };
 
   return (
     <AppShell>
@@ -93,20 +88,9 @@ function Account() {
           <div className="mt-3 flex flex-wrap gap-2">
             {roles.map((r) => <span key={r} className="glass rounded-full px-3 py-1 text-xs capitalize">{r}</span>)}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            {!roles.includes("vendor") && (
-              <button onClick={() => becomeRole("vendor")} className="glass glass-hover rounded-xl p-4 text-left">
-                <div className="text-sm font-semibold">Become a vendor</div>
-                <div className="text-xs text-muted-foreground">Open a global store</div>
-              </button>
-            )}
-            {!roles.includes("reseller") && (
-              <button onClick={() => becomeRole("reseller")} className="glass glass-hover rounded-xl p-4 text-left">
-                <div className="text-sm font-semibold">Become a reseller</div>
-                <div className="text-xs text-muted-foreground">Earn commissions</div>
-              </button>
-            )}
-          </div>
+          <Link to="/settings/notifications" className="glass glass-hover mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium">
+            <Bell className="h-3.5 w-3.5" /> Notification settings
+          </Link>
           <div className="mt-6">
             <h3 className="font-semibold text-sm">Recent orders</h3>
             <div className="mt-2 space-y-2">
@@ -121,6 +105,13 @@ function Account() {
           </div>
         </div>
       </div>
+
+      {!roles.includes("vendor") && (
+        <div className="mt-6"><RoleApplication role="vendor" /></div>
+      )}
+      {!roles.includes("reseller") && (
+        <div className="mt-6"><RoleApplication role="reseller" /></div>
+      )}
       {(roles.includes("vendor") || roles.includes("reseller")) && (
         <div className="mt-6">
           <PayoutSetup />

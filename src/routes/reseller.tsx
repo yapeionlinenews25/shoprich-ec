@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductCard, type ProductCardData } from "@/components/app/ProductCard";
 import { DollarSign, TrendingUp, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
+import { RoleApplication } from "@/components/app/RoleApplication";
 
 export const Route = createFileRoute("/reseller")({
   component: ResellerDashboard,
@@ -27,7 +28,13 @@ function ResellerDashboard() {
   }, [user?.id]);
 
   if (!user) return <AppShell><p>Please <Link to="/auth" className="text-accent underline">sign in</Link>.</p></AppShell>;
-  if (!roles.includes("reseller")) return <AppShell><p>You're not a reseller yet. <Link to="/account" className="text-accent underline">Become one</Link>.</p></AppShell>;
+  if (!roles.includes("reseller")) return (
+    <AppShell>
+      <h1 className="text-2xl font-bold mb-2">Become a reseller</h1>
+      <p className="text-sm text-muted-foreground mb-6">Earn commissions by sharing products to your audience. Applications are reviewed within 1–2 business days.</p>
+      <div className="max-w-xl"><RoleApplication role="reseller" /></div>
+    </AppShell>
+  );
 
   const total = commissions.reduce((s, c) => s + Number(c.amount), 0);
   const pending = commissions.filter((c) => c.status === "pending").reduce((s, c) => s + Number(c.amount), 0);

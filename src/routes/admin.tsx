@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, Package, ShoppingBag, DollarSign } from "lucide-react";
+import { Users, Package, ShoppingBag, DollarSign, ShieldAlert, CheckCircle2, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
@@ -16,29 +16,48 @@ function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [apps, setApps] = useState<any[]>([]);
 
   const load = async () => {
-    const [{ count: users }, { count: products }, { data: o }, { data: st }, { data: cfg }] = await Promise.all([
+    const [{ count: users }, { count: products }, { data: o }, { data: st }, { data: cfg }, { data: a }] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }),
       supabase.from("products").select("*", { count: "exact", head: true }),
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(20),
       supabase.from("vendor_stores").select("*").order("created_at", { ascending: false }),
       supabase.from("platform_settings").select("*").eq("id", 1).single(),
+      supabase.from("vendor_applications").select("*").eq("status", "pending").order("created_at", { ascending: false }),
     ]);
     setOrders(o ?? []);
     setStores(st ?? []);
     setSettings(cfg);
+    setApps(a ?? []);
     const revenue = (o ?? []).filter((x) => x.status !== "pending").reduce((s, x) => s + Number(x.platform_fee), 0);
     setStats({ users: users ?? 0, products: products ?? 0, orders: (o ?? []).length, revenue });
   };
   useEffect(() => { load(); }, [user?.id]);
 
-  if (!user) return <AppShell><p>Please <Link to="/auth" className="text-accent underline">sign in</Link>.</p></AppShell>;
+  if (!user) return (
+    <AppShell>
+      <div className="glass-strong mx-auto max-w-md rounded-3xl p-8 text-center">
+        <ShieldAlert className="mx-auto h-10 w-10 text-accent" />
+        <h1 className="mt-3 text-xl font-bold">Sign in required</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Please sign in with an admin account to access the dashboard.</p>
+        <Link to="/auth" className="mt-4 inline-block rounded-full gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground glass-hover">Sign in</Link>
+      </div>
+    </AppShell>
+  );
   if (!roles.includes("admin"))
     return (
       <AppShell>
-        <p className="mb-3">Admin access required.</p>
-        <p className="text-xs text-muted-foreground">If you're the platform owner, ask your database admin to add the <code>admin</code> role to your account in the user_roles table, or use the snippet shown in chat.</p>
+        <div className="glass-strong mx-auto max-w-md rounded-3xl p-8 text-center">
+          <ShieldAlert className="mx-auto h-10 w-10 text-amber-400" />
+          <h1 className="mt-3 text-xl font-bold">Admin access only</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your account ({user.email}) doesn't have the admin role yet. Only the platform owner can grant it.
+          </p>
+          <p className="mt-3 text-xs text-muted-foreground">If this is your platform, contact support to upgrade your account.</p>
+          <Link to="/" className="mt-5 inline-block glass glass-hover rounded-full px-5 py-2.5 text-sm font-semibold">Back to home</Link>
+        </div>
       </AppShell>
     );
 
@@ -58,6 +77,24 @@ function AdminDashboard() {
     load();
   };
 
+  const decideApp = async (app: any, decision: "approved" | "rejected", notes?: string) => {
+    if (decision === "approved") {
+      const { error: roleErr } = await supabase.from("user_roles").insert({ user_id: app.user_id, role: app.requested_role });
+      if (roleErr && !roleErr.message.includes("duplicate")) return toast.error(roleErr.message);
+    }
+    const { error } = await supabase.from("vendor_applications").update({
+      status: decision, review_notes: notes ?? null, reviewed_by: user!.id, reviewed_at: new Date().toISOString(),
+    }).eq("id", app.id);
+    if (error) return toast.error(error.message);
+    await supabase.from("notifications").insert({
+      user_id: app.user_id,
+      title: decision === "approved" ? `Your ${app.requested_role} application was approved` : `Your ${app.requested_role} application was not approved`,
+      body: notes || (decision === "approved" ? "Welcome aboard!" : "See your application for details."),
+      link: "/account",
+    }).then(() => {});
+    toast.success(`Application ${decision}`);
+    load();
+  };
   return (
     <AppShell>
       <h1 className="text-2xl font-bold">Admin dashboard</h1>
@@ -108,6 +145,31 @@ function AdminDashboard() {
           </label>
           <button className="rounded-full gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground glass-hover">Save</button>
         </form>
+      </div>
+
+      <div className="mt-6 glass-strong rounded-3xl p-6">
+        <h2 className="font-semibold mb-3">Pending vendor & reseller applications ({apps.length})</h2>
+        <div className="space-y-3">
+          {apps.length === 0 && <p className="text-xs text-muted-foreground">No pending applications.</p>}
+          {apps.map((a) => (
+            <div key={a.id} className="glass rounded-2xl p-4 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="font-semibold">{a.business_name} <span className="text-xs text-muted-foreground">· {a.requested_role}</span></div>
+                  <div className="text-xs text-muted-foreground">{a.country} · {a.category} · {new Date(a.created_at).toLocaleDateString()}</div>
+                </div>
+                <div className="flex gap-1.5">
+                  <button onClick={() => decideApp(a, "approved")} className="inline-flex items-center gap-1 rounded-full gradient-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground glass-hover"><CheckCircle2 className="h-3.5 w-3.5" /> Approve</button>
+                  <button onClick={() => { const n = prompt("Reason for rejection (sent to applicant):"); if (n !== null) decideApp(a, "rejected", n); }} className="inline-flex items-center gap-1 glass glass-hover rounded-full px-3 py-1.5 text-xs font-semibold text-destructive"><XCircle className="h-3.5 w-3.5" /> Reject</button>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{a.description}</p>
+              {(a.website || a.expected_monthly_volume) && (
+                <p className="mt-1 text-[11px] text-muted-foreground">{a.website && <>🔗 {a.website} · </>}{a.expected_monthly_volume}</p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </AppShell>
   );
