@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, Search, User, LogOut } from "lucide-react";
+import { ShoppingBag, Search, User, LogOut, Bell } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -34,6 +34,9 @@ export function Navbar() {
           </Link>
           {user ? (
             <>
+              <Link to="/settings/notifications" aria-label="Notification settings" title="Notifications" className="glass glass-hover hidden rounded-full p-2 sm:inline-flex">
+                <Bell className="h-4 w-4" />
+              </Link>
               <Link to="/account" className="glass glass-hover hidden rounded-full px-4 py-2 text-sm sm:inline-flex items-center gap-2">
                 <User className="h-4 w-4" /> Account
               </Link>

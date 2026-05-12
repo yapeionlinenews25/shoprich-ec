@@ -15,7 +15,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => ![STATIC_CACHE, RUNTIME_CACHE].includes(k)).map((k) => caches.delete(k))),
+      Promise.all(keys.filter((k) => ![STATIC_CACHE, RUNTIME_CACHE, PAGES_CACHE].includes(k)).map((k) => caches.delete(k))),
     ).then(() => self.clients.claim()),
   );
 });
@@ -28,13 +28,16 @@ self.addEventListener("fetch", (event) => {
   // never cache server fns / api
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_serverFn")) return;
 
-  // Network-first for HTML navigations
+  // Network-first for HTML navigations; cache select pages for offline browsing
   if (req.mode === "navigate") {
+    const cacheable = CACHEABLE_PAGE_PREFIXES.some((p) => url.pathname === p || url.pathname.startsWith(p));
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy));
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(cacheable ? PAGES_CACHE : RUNTIME_CACHE).then((c) => c.put(req, copy));
+          }
           return res;
         })
         .catch(() => caches.match(req).then((r) => r || caches.match("/"))),
