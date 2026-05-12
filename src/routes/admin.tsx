@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, Package, ShoppingBag, DollarSign } from "lucide-react";
+import { Users, Package, ShoppingBag, DollarSign, ShieldAlert, CheckCircle2, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
@@ -16,6 +16,7 @@ function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [apps, setApps] = useState<any[]>([]);
 
   const load = async () => {
     const [{ count: users }, { count: products }, { data: o }, { data: st }, { data: cfg }] = await Promise.all([
