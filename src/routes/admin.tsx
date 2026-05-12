@@ -34,12 +34,28 @@ function AdminDashboard() {
   };
   useEffect(() => { load(); }, [user?.id]);
 
-  if (!user) return <AppShell><p>Please <Link to="/auth" className="text-accent underline">sign in</Link>.</p></AppShell>;
+  if (!user) return (
+    <AppShell>
+      <div className="glass-strong mx-auto max-w-md rounded-3xl p-8 text-center">
+        <ShieldAlert className="mx-auto h-10 w-10 text-accent" />
+        <h1 className="mt-3 text-xl font-bold">Sign in required</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Please sign in with an admin account to access the dashboard.</p>
+        <Link to="/auth" className="mt-4 inline-block rounded-full gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground glass-hover">Sign in</Link>
+      </div>
+    </AppShell>
+  );
   if (!roles.includes("admin"))
     return (
       <AppShell>
-        <p className="mb-3">Admin access required.</p>
-        <p className="text-xs text-muted-foreground">If you're the platform owner, ask your database admin to add the <code>admin</code> role to your account in the user_roles table, or use the snippet shown in chat.</p>
+        <div className="glass-strong mx-auto max-w-md rounded-3xl p-8 text-center">
+          <ShieldAlert className="mx-auto h-10 w-10 text-amber-400" />
+          <h1 className="mt-3 text-xl font-bold">Admin access only</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your account ({user.email}) doesn't have the admin role yet. Only the platform owner can grant it.
+          </p>
+          <p className="mt-3 text-xs text-muted-foreground">If this is your platform, contact support to upgrade your account.</p>
+          <Link to="/" className="mt-5 inline-block glass glass-hover rounded-full px-5 py-2.5 text-sm font-semibold">Back to home</Link>
+        </div>
       </AppShell>
     );
 
