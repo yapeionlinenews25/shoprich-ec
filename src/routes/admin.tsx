@@ -154,7 +154,7 @@ function AdminDashboard() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div className="font-semibold">{a.business_name} <span className="text-xs text-muted-foreground">· {a.requested_role}</span></div>
-                  <div className="text-xs text-muted-foreground">{a.profile?.display_name} · {a.profile?.contact_email} · {a.country} · {a.category}</div>
+                  <div className="text-xs text-muted-foreground">{a.country} · {a.category} · {new Date(a.created_at).toLocaleDateString()}</div>
                 </div>
                 <div className="flex gap-1.5">
                   <button onClick={() => decideApp(a, "approved")} className="inline-flex items-center gap-1 rounded-full gradient-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground glass-hover"><CheckCircle2 className="h-3.5 w-3.5" /> Approve</button>
