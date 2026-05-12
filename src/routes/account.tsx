@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PayoutSetup } from "@/components/app/PayoutSetup";
-import { LogOut } from "lucide-react";
+import { RoleApplication } from "@/components/app/RoleApplication";
+import { LogOut, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/account")({
   component: Account,
@@ -44,12 +45,6 @@ function Account() {
     else toast.success("Profile saved. Notifications will go to these channels.");
   };
 
-  const becomeRole = async (role: "vendor" | "reseller") => {
-    const { error } = await supabase.from("user_roles").insert({ user_id: user.id, role });
-    if (error && !error.message.includes("duplicate")) return toast.error(error.message);
-    await refreshRoles();
-    toast.success(`You are now a ${role}!`);
-  };
 
   return (
     <AppShell>
