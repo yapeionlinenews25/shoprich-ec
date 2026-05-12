@@ -33,7 +33,13 @@ function VendorDashboard() {
   useEffect(() => { load(); }, [user?.id]);
 
   if (!user) return <AppShell><p>Please <Link to="/auth" className="text-accent underline">sign in</Link>.</p></AppShell>;
-  if (!roles.includes("vendor")) return <AppShell><p>You're not a vendor yet. <Link to="/account" className="text-accent underline">Become one</Link>.</p></AppShell>;
+  if (!roles.includes("vendor")) return (
+    <AppShell>
+      <h1 className="text-2xl font-bold mb-2">Become a vendor</h1>
+      <p className="text-sm text-muted-foreground mb-6">Open a global ShopRich EC store. Applications are reviewed within 1–2 business days.</p>
+      <div className="max-w-xl"><RoleApplication role="vendor" /></div>
+    </AppShell>
+  );
 
   const createStore = async (e: React.FormEvent) => {
     e.preventDefault();
