@@ -13,7 +13,7 @@ export const Route = createFileRoute("/account")({
 });
 
 function Account() {
-  const { user, roles, refreshRoles, signOut } = useAuth();
+  const { user, roles, signOut } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
