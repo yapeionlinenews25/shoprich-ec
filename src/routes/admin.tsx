@@ -144,6 +144,31 @@ function AdminDashboard() {
           <button className="rounded-full gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground glass-hover">Save</button>
         </form>
       </div>
+
+      <div className="mt-6 glass-strong rounded-3xl p-6">
+        <h2 className="font-semibold mb-3">Pending vendor & reseller applications ({apps.length})</h2>
+        <div className="space-y-3">
+          {apps.length === 0 && <p className="text-xs text-muted-foreground">No pending applications.</p>}
+          {apps.map((a) => (
+            <div key={a.id} className="glass rounded-2xl p-4 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="font-semibold">{a.business_name} <span className="text-xs text-muted-foreground">· {a.requested_role}</span></div>
+                  <div className="text-xs text-muted-foreground">{a.profile?.display_name} · {a.profile?.contact_email} · {a.country} · {a.category}</div>
+                </div>
+                <div className="flex gap-1.5">
+                  <button onClick={() => decideApp(a, "approved")} className="inline-flex items-center gap-1 rounded-full gradient-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground glass-hover"><CheckCircle2 className="h-3.5 w-3.5" /> Approve</button>
+                  <button onClick={() => { const n = prompt("Reason for rejection (sent to applicant):"); if (n !== null) decideApp(a, "rejected", n); }} className="inline-flex items-center gap-1 glass glass-hover rounded-full px-3 py-1.5 text-xs font-semibold text-destructive"><XCircle className="h-3.5 w-3.5" /> Reject</button>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{a.description}</p>
+              {(a.website || a.expected_monthly_volume) && (
+                <p className="mt-1 text-[11px] text-muted-foreground">{a.website && <>🔗 {a.website} · </>}{a.expected_monthly_volume}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </AppShell>
   );
 }
