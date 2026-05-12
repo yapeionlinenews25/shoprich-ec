@@ -75,6 +75,24 @@ function AdminDashboard() {
     load();
   };
 
+  const decideApp = async (app: any, decision: "approved" | "rejected", notes?: string) => {
+    if (decision === "approved") {
+      const { error: roleErr } = await supabase.from("user_roles").insert({ user_id: app.user_id, role: app.requested_role });
+      if (roleErr && !roleErr.message.includes("duplicate")) return toast.error(roleErr.message);
+    }
+    const { error } = await supabase.from("vendor_applications").update({
+      status: decision, review_notes: notes ?? null, reviewed_by: user!.id, reviewed_at: new Date().toISOString(),
+    }).eq("id", app.id);
+    if (error) return toast.error(error.message);
+    await supabase.from("notifications").insert({
+      user_id: app.user_id,
+      title: decision === "approved" ? `Your ${app.requested_role} application was approved` : `Your ${app.requested_role} application was not approved`,
+      body: notes || (decision === "approved" ? "Welcome aboard!" : "See your application for details."),
+      link: "/account",
+    }).then(() => {});
+    toast.success(`Application ${decision}`);
+    load();
+  };
   return (
     <AppShell>
       <h1 className="text-2xl font-bold">Admin dashboard</h1>
