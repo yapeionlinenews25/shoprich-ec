@@ -89,7 +89,7 @@ function NotificationSettings() {
   );
 }
 
-function Toggle({ icon: Icon, label, sub, checked, onChange, children }: any) {
+function Toggle({ icon: Icon, label, sub, checked, onChange, children }: { icon: any; label: string; sub: string; checked: boolean; onChange: (v: boolean) => void; children?: React.ReactNode }) {
   return (
     <div className="glass flex items-start justify-between gap-3 rounded-2xl p-4">
       <div className="flex gap-3">
