@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
@@ -20,6 +20,7 @@ function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const cart = useCart();
   const { roles, user } = useAuth();
+  const navigate = useNavigate();
   const url = typeof window !== "undefined" ? `${window.location.origin}/products/${id}?ref=${user?.id ?? ""}` : "";
 
   useEffect(() => {
@@ -67,8 +68,15 @@ function ProductDetail() {
           <button
             disabled={p.stock <= 0}
             onClick={async () => {
+              const ref = new URL(window.location.href).searchParams.get("ref");
+              if (!user) {
+                sessionStorage.setItem("pending_cart_add", JSON.stringify({ productId: p.id, ref: ref || null }));
+                const back = `/products/${p.id}${ref ? `?ref=${ref}` : ""}`;
+                toast.message("Please sign in", { description: "We'll add this to your cart after you sign in." });
+                navigate({ to: "/auth", search: { redirect: back } as any });
+                return;
+              }
               try {
-                const ref = new URL(window.location.href).searchParams.get("ref");
                 await cart.add(p.id, 1, ref || null);
                 toast.success("Added to cart");
               } catch (e: any) {

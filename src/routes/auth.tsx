@@ -8,14 +8,40 @@ import { ShoppingBag } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — ShopRich EC" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ redirect: typeof s.redirect === "string" ? s.redirect : undefined }),
   component: AuthPage,
 });
+
+async function processPendingCartAdd() {
+  try {
+    const raw = sessionStorage.getItem("pending_cart_add");
+    if (!raw) return;
+    sessionStorage.removeItem("pending_cart_add");
+    const { productId, ref } = JSON.parse(raw);
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    const { getOrCreateCart } = await import("@/lib/cart");
+    const cartId = await getOrCreateCart(u.user.id);
+    const { data: existing } = await supabase.from("cart_items").select("id, quantity").eq("cart_id", cartId).eq("product_id", productId).maybeSingle();
+    if (existing) await supabase.from("cart_items").update({ quantity: existing.quantity + 1 }).eq("id", existing.id);
+    else await supabase.from("cart_items").insert({ cart_id: cartId, product_id: productId, quantity: 1, reseller_id: ref || null });
+  } catch {}
+}
 
 type Tab = "email" | "phone";
 
 function AuthPage() {
   const { user } = useAuth();
   const nav = useNavigate();
+  const search = Route.useSearch();
+  const redirectTo = search.redirect || "/account";
+
+  const goAfterAuth = async () => {
+    await processPendingCartAdd();
+    if (redirectTo.startsWith("/")) window.location.href = redirectTo;
+    else nav({ to: "/account" });
+  };
   const [tab, setTab] = useState<Tab>("email");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -26,7 +52,7 @@ function AuthPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (user) nav({ to: "/account" }); }, [user, nav]);
+  useEffect(() => { if (user) goAfterAuth(); /* eslint-disable-next-line */ }, [user]);
 
   const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);
@@ -34,7 +60,7 @@ function AuthPage() {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email, password,
-          options: { emailRedirectTo: `${window.location.origin}/account`, data: { display_name: name || email.split("@")[0] } },
+          options: { emailRedirectTo: `${window.location.origin}${redirectTo}`, data: { display_name: name || email.split("@")[0] } },
         });
         if (error) throw error;
         toast.success("Account created. Check your email to verify.");
@@ -43,7 +69,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-        nav({ to: "/account" });
+        goAfterAuth();
       }
     } catch (err: any) { toast.error(err.message ?? "Authentication failed"); }
     finally { setBusy(false); }
@@ -66,7 +92,7 @@ function AuthPage() {
       const { error } = await supabase.auth.verifyOtp({ phone, token: otp, type: "sms" });
       if (error) throw error;
       toast.success("Signed in");
-      nav({ to: "/account" });
+      goAfterAuth();
     } catch (err: any) { toast.error(err.message ?? "Invalid code"); }
     finally { setBusy(false); }
   };
