@@ -20,7 +20,7 @@ export function Reviews({ productId }: { productId: string }) {
     setList(items);
     if (items.length) {
       const ids = Array.from(new Set(items.map((r) => r.user_id)));
-      const { data: ps } = await supabase.from("profiles").select("user_id, display_name").in("user_id", ids);
+      const { data: ps } = await (supabase as any).from("profiles_public").select("user_id, display_name").in("user_id", ids);
       const map: Record<string, string> = {};
       (ps ?? []).forEach((p: any) => (map[p.user_id] = p.display_name ?? "Customer"));
       setProfiles(map);
