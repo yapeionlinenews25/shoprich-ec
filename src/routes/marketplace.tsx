@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
 import { ProductCard, type ProductCardData } from "@/components/app/ProductCard";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Search, SlidersHorizontal } from "lucide-react";
 
@@ -24,6 +25,8 @@ function Marketplace() {
   const [countries, setCountries] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const cart = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     supabase.from("vendor_stores").select("country").not("country", "is", null).then(({ data }) => {
@@ -114,6 +117,12 @@ function Marketplace() {
           {products.map((p) => (
             <ProductCard key={p.id} p={p}
               onAdd={async (id) => {
+                if (!user) {
+                  sessionStorage.setItem("pending_cart_add", JSON.stringify({ productId: id, ref: null }));
+                  toast.message("Please sign in", { description: "We'll add this to your cart after you sign in." });
+                  navigate({ to: "/auth", search: { redirect: "/marketplace" } as any });
+                  return;
+                }
                 try { await cart.add(id, 1); toast.success("Added to cart"); }
                 catch (e: any) { toast.error(e.message); }
               }} />
