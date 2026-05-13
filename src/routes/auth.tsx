@@ -52,7 +52,7 @@ function AuthPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (user) nav({ to: "/account" }); }, [user, nav]);
+  useEffect(() => { if (user) goAfterAuth(); /* eslint-disable-next-line */ }, [user]);
 
   const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);
@@ -60,7 +60,7 @@ function AuthPage() {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email, password,
-          options: { emailRedirectTo: `${window.location.origin}/account`, data: { display_name: name || email.split("@")[0] } },
+          options: { emailRedirectTo: `${window.location.origin}${redirectTo}`, data: { display_name: name || email.split("@")[0] } },
         });
         if (error) throw error;
         toast.success("Account created. Check your email to verify.");
@@ -69,7 +69,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-        nav({ to: "/account" });
+        goAfterAuth();
       }
     } catch (err: any) { toast.error(err.message ?? "Authentication failed"); }
     finally { setBusy(false); }
@@ -92,7 +92,7 @@ function AuthPage() {
       const { error } = await supabase.auth.verifyOtp({ phone, token: otp, type: "sms" });
       if (error) throw error;
       toast.success("Signed in");
-      nav({ to: "/account" });
+      goAfterAuth();
     } catch (err: any) { toast.error(err.message ?? "Invalid code"); }
     finally { setBusy(false); }
   };
