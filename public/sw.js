@@ -3,7 +3,7 @@ const VERSION = "v2";
 const STATIC_CACHE = `shoprich-static-${VERSION}`;
 const RUNTIME_CACHE = `shoprich-runtime-${VERSION}`;
 const PAGES_CACHE = `shoprich-pages-${VERSION}`;
-const PRECACHE = ["/", "/marketplace", "/cart", "/account", "/vendor", "/reseller", "/contact", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+const PRECACHE = ["/", "/marketplace", "/cart", "/account", "/vendor", "/reseller", "/contact", "/manifest.webmanifest", "/favicon.ico"];
 const CACHEABLE_PAGE_PREFIXES = ["/products/", "/marketplace", "/vendor", "/reseller", "/account", "/contact", "/privacy", "/terms"];
 
 self.addEventListener("install", (event) => {
@@ -67,8 +67,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
+      icon: "/favicon.ico",
+      badge: "/favicon.ico",
       data: { url: data.url },
     }),
   );
