@@ -722,7 +722,84 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      payout_accounts_admin: {
+        Row: {
+          account_name: string | null
+          account_number_masked: string | null
+          bank_code: string | null
+          bank_name: string | null
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          id: string | null
+          is_default: boolean | null
+          paystack_recipient_code: string | null
+          type: string | null
+          updated_at: string | null
+          user_id: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          account_name?: string | null
+          account_number_masked?: never
+          bank_code?: string | null
+          bank_name?: string | null
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string | null
+          is_default?: boolean | null
+          paystack_recipient_code?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          account_name?: string | null
+          account_number_masked?: never
+          bank_code?: string | null
+          bank_name?: string | null
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string | null
+          is_default?: boolean | null
+          paystack_recipient_code?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      profiles_public: {
+        Row: {
+          avatar_url: string | null
+          country: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          country?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          country?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -730,6 +807,14 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_order_customer: {
+        Args: { _order_id: string; _uid: string }
+        Returns: boolean
+      }
+      is_order_stakeholder: {
+        Args: { _order_id: string; _uid: string }
         Returns: boolean
       }
     }
