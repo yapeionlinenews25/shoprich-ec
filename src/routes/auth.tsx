@@ -8,14 +8,40 @@ import { ShoppingBag } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — ShopRich EC" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({ redirect: typeof s.redirect === "string" ? s.redirect : undefined }),
   component: AuthPage,
 });
+
+async function processPendingCartAdd() {
+  try {
+    const raw = sessionStorage.getItem("pending_cart_add");
+    if (!raw) return;
+    sessionStorage.removeItem("pending_cart_add");
+    const { productId, ref } = JSON.parse(raw);
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    const { getOrCreateCart } = await import("@/lib/cart");
+    const cartId = await getOrCreateCart(u.user.id);
+    const { data: existing } = await supabase.from("cart_items").select("id, quantity").eq("cart_id", cartId).eq("product_id", productId).maybeSingle();
+    if (existing) await supabase.from("cart_items").update({ quantity: existing.quantity + 1 }).eq("id", existing.id);
+    else await supabase.from("cart_items").insert({ cart_id: cartId, product_id: productId, quantity: 1, reseller_id: ref || null });
+  } catch {}
+}
 
 type Tab = "email" | "phone";
 
 function AuthPage() {
   const { user } = useAuth();
   const nav = useNavigate();
+  const search = Route.useSearch();
+  const redirectTo = search.redirect || "/account";
+
+  const goAfterAuth = async () => {
+    await processPendingCartAdd();
+    if (redirectTo.startsWith("/")) window.location.href = redirectTo;
+    else nav({ to: "/account" });
+  };
   const [tab, setTab] = useState<Tab>("email");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
