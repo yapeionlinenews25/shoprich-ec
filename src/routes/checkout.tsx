@@ -19,12 +19,24 @@ function Checkout() {
   const nav = useNavigate();
   const finalize = useServerFn(finalizeOrderPayment);
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ name: "", address: "", city: "", country: "", phone: "", method: "card" });
+  const [form, setForm] = useState({
+    name: "",
+    address: "",
+    city: "",
+    country: "",
+    phone: "",
+    method: "card",
+  });
 
   if (!user)
     return (
       <AppShell>
-        <p className="text-center text-muted-foreground">Please <Link to="/auth" className="text-accent underline">sign in</Link> to checkout.</p>
+        <p className="text-center text-muted-foreground">
+          Please <Link to="/auth" className="text-accent underline">
+            sign in
+          </Link>{" "}
+          to checkout.
+        </p>
       </AppShell>
     );
 
@@ -33,8 +45,12 @@ function Checkout() {
     if (cart.items.length === 0) return toast.error("Cart is empty");
     setBusy(true);
     try {
-      // Get platform fee
-      const { data: settings } = await supabase.from("platform_settings").select("*").eq("id", 1).single();
+      // Get platform settings
+      const { data: settings } = await supabase
+        .from("platform_settings")
+        .select("*")
+        .eq("id", 1)
+        .single();
       const feePct = Number(settings?.platform_fee_pct ?? 5) / 100;
 
       // Compute totals + per-item splits
@@ -42,12 +58,12 @@ function Checkout() {
         const unit = Number(i.product?.price ?? 0);
         const line = unit * i.quantity;
         const platform_fee = +(line * feePct).toFixed(2);
-        const reseller_commission = 0; // we'll fetch product reseller_pct below
+        let reseller_commission = 0;
         const vendor_payout = +(line - platform_fee - reseller_commission).toFixed(2);
         return {
           product_id: i.product_id,
           vendor_id: i.product?.vendor_id ?? "",
-          reseller_id: i.reseller_id,
+          reseller_id: i.reseller_id || null,
           title: i.product?.title ?? "",
           unit_price: unit,
           quantity: i.quantity,
@@ -58,10 +74,14 @@ function Checkout() {
         };
       });
 
-      // Pull reseller commission %s for any items with reseller
-      const productIds = items.map((i) => i.product_id);
-      const { data: prods } = await supabase.from("products").select("id, reseller_commission_pct").in("id", productIds);
-      const pctMap = new Map((prods ?? []).map((p) => [p.id, Number(p.reseller_commission_pct)]));
+      // Pull reseller commission %s for items with reseller
+      const productIds = [...new Set(items.map((i) => i.product_id))];
+      const { data: prods } = await supabase
+        .from("products")
+        .select("id, reseller_commission_pct")
+        .in("id", productIds);
+      const pctMap = new Map((prods ?? []).map((p) => [p.id, Number(p.reseller_commission_pct ?? 0)]));
+
       for (const it of items) {
         if (it.reseller_id) {
           const pct = (pctMap.get(it.product_id) ?? 0) / 100;
@@ -74,52 +94,85 @@ function Checkout() {
       const platform_fee = items.reduce((s, i) => s + i.platform_fee, 0);
       const reseller_commission = items.reduce((s, i) => s + i.reseller_commission, 0);
       const vendor_payout = items.reduce((s, i) => s + i.vendor_payout, 0);
+      const total = subtotal + platform_fee;
 
-      // Create order
-      const { data: order, error: oErr } = await supabase
-        .from("orders")
-        .insert({
-          customer_id: user.id,
-          subtotal, platform_fee, reseller_commission, vendor_payout, total: subtotal,
-          shipping_name: form.name, shipping_address: form.address, shipping_city: form.city,
-          shipping_country: form.country, shipping_phone: form.phone, payment_method: form.method,
-        })
-        .select("*")
-        .single();
-      if (oErr) throw oErr;
+      // Create order with RLS bypass context
+      const { data: order, error: oErr } = await supabase.from("orders").insert({
+        customer_id: user.id,
+        subtotal,
+        platform_fee,
+        reseller_commission,
+        vendor_payout,
+        total,
+        shipping_name: form.name,
+        shipping_address: form.address,
+        shipping_city: form.city,
+        shipping_country: form.country,
+        shipping_phone: form.phone,
+        payment_method: form.method,
+        status: "pending",
+        order_number: `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      });
+
+      if (oErr) throw new Error(oErr.message);
+      if (!order || !order[0]) throw new Error("Failed to create order");
+
+      const orderData = order[0];
 
       // Order items
-      const { error: oiErr } = await supabase
-        .from("order_items")
-        .insert(items.map((i) => ({ ...i, order_id: order.id })));
-      if (oiErr) throw oiErr;
+      const { error: oiErr } = await supabase.from("order_items").insert(
+        items.map((i) => ({
+          ...i,
+          order_id: orderData.id,
+        }))
+      );
+      if (oiErr) throw new Error(oiErr.message);
 
-      // Real payment: route to Stripe / Paystack edge functions when selected
+      // Route to appropriate payment provider
       if (form.method === "stripe") {
-        const { data, error } = await supabase.functions.invoke("create-stripe-checkout", {
-          body: { orderId: order.id, successUrl: `${window.location.origin}/orders/${order.id}`, cancelUrl: `${window.location.origin}/checkout` },
-        });
-        if (error || !data?.url) throw new Error((data as any)?.error ?? error?.message ?? "Stripe checkout failed");
-        window.location.href = data.url;
-        return;
-      }
-      if (form.method === "paystack") {
-        const { data, error } = await supabase.functions.invoke("create-paystack-checkout", {
-          body: { orderId: order.id, callbackUrl: `${window.location.origin}/orders/${order.id}` },
-        });
-        if (error || !data?.url) throw new Error((data as any)?.error ?? error?.message ?? "Paystack checkout failed");
+        const { data, error } = await supabase.functions.invoke(
+          "create-stripe-checkout",
+          {
+            body: {
+              orderId: orderData.id,
+              successUrl: `${window.location.origin}/orders/${orderData.id}`,
+              cancelUrl: `${window.location.origin}/checkout`,
+            },
+          }
+        );
+        if (error || !data?.url)
+          throw new Error((data as any)?.error ?? error?.message ?? "Stripe checkout failed");
         window.location.href = data.url;
         return;
       }
 
-      // Demo (card / paypal): simulate payment + send notifications via server fn
-      const result = await finalize({ data: { orderId: order.id } });
-      if (!result.ok) throw new Error("Payment failed");
+      if (form.method === "paystack") {
+        const { data, error } = await supabase.functions.invoke(
+          "create-paystack-checkout",
+          {
+            body: {
+              orderId: orderData.id,
+              callbackUrl: `${window.location.origin}/orders/${orderData.id}`,
+              userEmail: user.email,
+              userName: form.name,
+            },
+          }
+        );
+        if (error || !data?.url)
+          throw new Error((data as any)?.error ?? error?.message ?? "Paystack checkout failed");
+        window.location.href = data.url;
+        return;
+      }
+
+      // Demo: simulate payment
+      const result = await finalize({ data: { orderId: orderData.id } });
+      if (!result.ok) throw new Error(result.message || "Payment failed");
 
       await cart.clear();
       toast.success("Payment successful! Confirmation sent.");
-      nav({ to: "/orders/$id", params: { id: order.id } });
+      nav({ to: "/orders/$id", params: { id: orderData.id } });
     } catch (e: any) {
+      console.error("Checkout error:", e);
       toast.error(e.message ?? "Checkout failed");
     } finally {
       setBusy(false);
@@ -132,34 +185,67 @@ function Checkout() {
       <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="glass rounded-3xl p-6 space-y-3">
           <h2 className="font-semibold">Shipping address</h2>
-          {([
-            ["name", "Full name"], ["address", "Address"], ["city", "City"], ["country", "Country"], ["phone", "Phone"],
-          ] as const).map(([k, label]) => (
-            <input key={k} required placeholder={label} value={(form as any)[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-              className="glass w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
+          {(
+            [
+              ["name", "Full name"],
+              ["address", "Address"],
+              ["city", "City"],
+              ["country", "Country"],
+              ["phone", "Phone"],
+            ] as const
+          ).map(([k, label]) => (
+            <input
+              key={k}
+              required
+              placeholder={label}
+              value={(form as any)[k]}
+              onChange={(e) => setForm({ ...form, [k]: e.target.value })}
+              className="glass w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
           ))}
           <h2 className="mt-4 font-semibold">Payment method</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {["card", "paypal", "stripe", "paystack"].map((m) => (
-              <button type="button" key={m} onClick={() => setForm({ ...form, method: m })}
-                className={`rounded-xl px-3 py-3 text-sm capitalize ${form.method === m ? "gradient-primary text-primary-foreground" : "glass glass-hover"}`}>
+              <button
+                type="button"
+                key={m}
+                onClick={() => setForm({ ...form, method: m })}
+                className={`rounded-xl px-3 py-3 text-sm capitalize ${
+                  form.method === m
+                    ? "gradient-primary text-primary-foreground"
+                    : "glass glass-hover"
+                }`}
+              >
                 {m}
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">Demo mode: payments are simulated. Configure live payment provider keys to enable real charges.</p>
+          <p className="text-xs text-muted-foreground">
+            {form.method === "paystack" || form.method === "stripe"
+              ? "Real payment processing enabled. Your data is secure."
+              : "Demo mode: payments are simulated. Set to Stripe/Paystack for real charges."}
+          </p>
         </div>
         <aside className="glass-strong h-fit rounded-3xl p-6">
           <h2 className="text-lg font-semibold">Order summary</h2>
           <ul className="mt-3 space-y-1 text-sm">
             {cart.items.map((i) => (
-              <li key={i.id} className="flex justify-between"><span className="truncate">{i.product?.title} ×{i.quantity}</span><span>${(Number(i.product?.price ?? 0) * i.quantity).toFixed(2)}</span></li>
+              <li key={i.id} className="flex justify-between">
+                <span className="truncate">
+                  {i.product?.title} ×{i.quantity}
+                </span>
+                <span>${(Number(i.product?.price ?? 0) * i.quantity).toFixed(2)}</span>
+              </li>
             ))}
           </ul>
           <div className="mt-3 border-t border-border pt-3 flex justify-between font-semibold">
-            <span>Total</span><span className="gradient-text">${cart.subtotal.toFixed(2)}</span>
+            <span>Total</span>
+            <span className="gradient-text">${cart.subtotal.toFixed(2)}</span>
           </div>
-          <button disabled={busy} className="mt-4 w-full rounded-full gradient-primary px-4 py-3 text-sm font-semibold text-primary-foreground glass-hover disabled:opacity-60">
+          <button
+            disabled={busy}
+            className="mt-4 w-full rounded-full gradient-primary px-4 py-3 text-sm font-semibold text-primary-foreground glass-hover disabled:opacity-60"
+          >
             {busy ? "Processing..." : `Pay $${cart.subtotal.toFixed(2)}`}
           </button>
         </aside>
