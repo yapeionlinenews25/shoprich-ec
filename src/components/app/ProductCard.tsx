@@ -6,9 +6,11 @@ export type ProductCardData = {
   id: string;
   title: string;
   price: number;
+  currency?: string | null;
   image_url: string | null;
   category?: string | null;
   vendor_id: string;
+  sku?: string | null;
 };
 
 export function ProductCard({ p, onAdd }: { p: ProductCardData; onAdd?: (id: string) => void }) {
@@ -31,11 +33,14 @@ export function ProductCard({ p, onAdd }: { p: ProductCardData; onAdd?: (id: str
         </Link>
         {p.category && <p className="text-xs text-muted-foreground">{p.category}</p>}
         <div className="mt-3 flex items-center justify-between">
-          <span className="text-lg font-bold gradient-text">${Number(p.price).toFixed(2)}</span>
+          <span className="text-lg font-bold gradient-text">
+            {p.currency ? `${p.currency} ${Number(p.price).toFixed(2)}` : `$${Number(p.price).toFixed(2)}`}
+          </span>
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Star className="h-3.5 w-3.5 fill-accent text-accent" /> 4.8
           </span>
         </div>
+        {p.sku && <div className="text-xs text-muted-foreground mt-1">SKU: {p.sku}</div>}
         {onAdd && (
           <button
             onClick={() => onAdd(p.id)}
