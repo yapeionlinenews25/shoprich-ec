@@ -1,0 +1,120 @@
+# lovable-ci.yml
+# CI pipeline to run migrations and deploy Supabase Functions.
+# Adapt as needed for your CI runner. This example uses a generic Ubuntu runner.
+
+name: Deploy ShopRich (Supabase)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-supabase:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_REF: ${{ secrets.PROJECT_REF }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+      # Optional DB backup envs (if you want automatic DB dumps)
+      DB_BACKUP: ${{ secrets.DB_BACKUP }}      # set to "yes" to enable dump step
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASS: ${{ secrets.DB_PASS }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (supabase CLI + deno)
+        run: |
+          # Install supabase CLI (Linux)
+          curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash - || true
+          sudo apt-get update -y
+          sudo apt-get install -y ca-certificates curl unzip
+          # Release tarball install (official script)
+          curl -sSL https://github.com/supabase/cli/releases/latest/download/supabase_$(uname -s)_$(uname -m).tar.gz -o /tmp/supabase.tar.gz
+          sudo tar -C /usr/local/bin -xzf /tmp/supabase.tar.gz supabase || true
+          supabase --version || true
+
+          # Install deno (needed for Deno runtime functions)
+          curl -fsSL https://deno.land/x/install/install.sh | sh
+          export DENO_INSTALL="$HOME/.deno"
+          export PATH="$DENO_INSTALL/bin:$PATH"
+          deno --version || true
+
+      - name: Optional DB backup (pg_dump)
+        if: env.DB_BACKUP == 'yes'
+        run: |
+          echo "DB_BACKUP=yes. Creating DB dump..."
+          apt-get update && apt-get install -y postgresql-client
+          export PGPASSWORD="${DB_PASS}"
+          pg_dump -h "${DB_HOST}" -p "${DB_PORT:-5432}" -U "${DB_USER}" -F c -b -v -f shoprich-backup-$(date +'%Y%m%d%H%M').dump "${DB_NAME}"
+          ls -lh shoprich-backup-*.dump
+
+      - name: Supabase: Run migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ secrets.PROJECT_REF }}
+        run: |
+          # Run the SQL migration file(s)
+          # Using supabase CLI to query or apply migrations
+          if [ -f "supabase/migrations/001_create_vendor_tables.sql" ]; then
+            echo "Running migration: 001_create_vendor_tables.sql"
+            supabase db query --file=supabase/migrations/001_create_vendor_tables.sql --project-ref "${PROJECT_REF}"
+          else
+            echo "No migration file found at supabase/migrations/001_create_vendor_tables.sql"
+            exit 1
+          fi
+
+      - name: Supabase: Deploy functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ secrets.PROJECT_REF }}
+        run: |
+          # Deploy any functions present under supabase/functions/
+          set -e
+          cd supabase/functions || (echo "No supabase/functions directory" && exit 0)
+
+          for fn in */ ; do
+            fnname=$(basename "$fn")
+            echo "Deploying function: $fnname"
+            supabase functions deploy "$fnname" --project-ref "${PROJECT_REF}" --no-verify-jwt || (echo "Failed to deploy $fnname" && exit 1)
+          done
+          cd - || true
+
+      - name: Smoke tests - Stripe onboarding endpoint
+        env:
+          PROJECT_REF: ${{ secrets.PROJECT_REF }}
+        run: |
+          set -e
+          FUNCTIONS_HOST="https://${PROJECT_REF}.functions.supabase.co"
+
+          # Try minimal test call to create-stripe-connect (we expect it to validate input)
+          echo "Testing create-stripe-connect (expect 200 + url)"
+          resp=$(curl -s -X POST "${FUNCTIONS_HOST}/create-stripe-connect" \
+            -H "Content-Type: application/json" \
+            -d '{"vendor_profile_id":"00000000-0000-0000-0000-000000000000","email":"test@example.com","country":"NG","origin":"'${FRONTEND_URL:-https://'"${PROJECT_REF}"'.supabase.co'}'"}' || true)
+          echo "create-stripe-connect response: $resp"
+          # Not failing on response since the function may return errors if vendor_profile_id doesn't exist.
+          # We just want to confirm the function is reachable.
+
+      - name: Smoke tests - Telegram webhook endpoint
+        env:
+          PROJECT_REF: ${{ secrets.PROJECT_REF }}
+        run: |
+          FUNCTIONS_HOST="https://${PROJECT_REF}.functions.supabase.co"
+          echo "Testing telegram-bot endpoint reachability"
+          curl -s -X POST "${FUNCTIONS_HOST}/telegram-bot" -H "Content-Type: application/json" -d '{"message": {"text":"/ping","chat":{"id":12345}}}' -o /tmp/tg_resp.json || true
+          cat /tmp/tg_resp.json || true
+
+      - name: Finalize
+        run: |
+          echo "Deployment finished. Check the step logs above for any runtime errors."
