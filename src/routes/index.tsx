@@ -10,7 +10,7 @@ import { Footer } from "@/components/site/Footer";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ShopRich EC — Global Glassmorphism Marketplace" },
+      { title: "ShopRich EC — Global Fast Rising Marketplace" },
       {
         name: "description",
         content:
