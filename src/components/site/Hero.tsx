@@ -29,7 +29,7 @@ export function Hero() {
         <div className="mx-auto max-w-3xl text-center">
           <span className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs">
             <Sparkles className="h-3.5 w-3.5 text-accent" />
-            The global glassmorphism marketplace
+            The global fast rising marketplace
           </span>
           <h1 className="mt-6 text-4xl font-bold leading-tight tracking-tight sm:text-6xl">
             Sell. Resell. Shop.{" "}
