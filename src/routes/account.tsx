@@ -36,7 +36,7 @@ function Account() {
           throw pErr;
         }
         // near top of Account() body (right after const navigate)
-console.log("[Account] loaded, commit:", process.env?.REACT_APP_COMMIT_SHA ?? "unknown");
+        console.log("[Account] loaded, commit:", process.env?.REACT_APP_COMMIT_SHA ?? "unknown");
         
         setProfile(p || {
           user_id: user.id,
