@@ -170,7 +170,7 @@ function AuthPage() {
           </button>
         </div>
         <p className="mt-4 text-center text-[11px] text-muted-foreground">
-          Phone sign-in requires SMS provider configuration in your backend. Apple sign-in works on supported devices.
+          Phone sign-in | Apple sign-in works on supported devices.
         </p>
       </div>
     </div>
