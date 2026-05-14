@@ -113,29 +113,44 @@ function Account() {
     }
   };
 
-  const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // inside Account component (replace uploadAvatar)
+const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file || !user) return;
 
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `avatars/${user.id}-${Date.now()}.${ext}`;
-      
-      const { error } = await supabase.storage
-        .from("avatars")
-        .upload(path, file);
-      
-      if (error) throw error;
+  try {
+    console.log("[Account] uploadAvatar starting", { userId: user.id, fileName: file.name });
+    const ext = file.name.split(".").pop();
+    const path = `avatars/${user.id}-${Date.now()}.${ext}`;
 
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      
-      setAvatarUrl(data.publicUrl);
-      setProfile({ ...profile, avatar_url: data.publicUrl });
-      toast.success("Avatar uploaded!");
-    } catch (error: any) {
-      toast.error(error.message);
+    // upload
+    const upRes = await supabase.storage.from("avatars").upload(path, file, { upsert: false });
+    // supabase v2 returns { data, error }; older versions may vary
+    const upErr = (upRes as any).error ?? (upRes as any).data?.error ?? null;
+    if (upErr) throw upErr;
+
+    // get public URL — handle multiple possible shapes
+    const urlRes = await supabase.storage.from("avatars").getPublicUrl(path) as any;
+    const publicUrl =
+      urlRes?.data?.publicUrl ??
+      urlRes?.data?.publicURL ??
+      urlRes?.publicUrl ??
+      urlRes?.publicURL ??
+      null;
+
+    if (!publicUrl) {
+      console.warn("[Account] getPublicUrl returned unexpected shape", urlRes);
+      throw new Error("Could not generate public avatar URL");
     }
-  };
+
+    setAvatarUrl(publicUrl);
+    setProfile((prev: any) => ({ ...(prev ?? {}), avatar_url: publicUrl }));
+    toast.success("Avatar uploaded!");
+  } catch (err: any) {
+    console.error("[Account] uploadAvatar error:", err);
+    toast.error(err?.message ?? "Failed to upload avatar");
+  }
+};
 
   if (loading) return <AppShell><p className="text-center">Loading...</p></AppShell>;
 
