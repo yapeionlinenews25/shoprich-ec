@@ -46,7 +46,7 @@ function Marketplace() {
       }
       let query = supabase
         .from("products")
-        .select("id, title, price, image_url, category, vendor_id, status")
+        .select("id, title, price, currency, sku, image_url, category, vendor_id, status")
         .eq("status", "active")
         .limit(60);
       if (cat) query = query.eq("category", cat);
